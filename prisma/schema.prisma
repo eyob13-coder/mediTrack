@@ -1,59 +1,519 @@
-model Chat {
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id          String    @id @default(uuid())
+  name        String
+  plan        Plan      @default(FREE)
+  stripeCustomerId String?
+  stripeSubscriptionId String?
+  subscriptionStatus SubscriptionStatus @default(INACTIVE)
+  defaultLanguage String @default("en")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  users       User[]
+  pharmacies  Pharmacy[]
+  orders      Order[]
+  audits      Audit[]
+  payouts     Payout[]
+
+  @@unique([stripeCustomerId])
+  @@unique([stripeSubscriptionId])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  tenantId     String
+  pharmacyId   String?
+  
+  // Personal Information
+  email        String   @unique
+  password     String
+  name         String?
+  phone        String?
+  language     String   @default("en")
+  
+  // Authentication & Verification
+  emailVerified Boolean @default(false)
+  phoneVerified Boolean @default(false)
+  verificationToken String?
+  verificationTokenExpires DateTime?
+  refreshToken String?
+  
+  // Role & Status
+  role         Role     @default(WORKER)
+  isActive     Boolean  @default(true)
+  
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastLoginAt  DateTime?
+  deactivatedAt DateTime?
+  deactivatedBy String?
+  
+  // Relations
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  pharmacy     Pharmacy? @relation(fields: [pharmacyId], references: [id])
+  orders       Order[]
+  auditLogs    Audit[]
+  chatParticipants ChatParticipant[]
+  chatMessages ChatMessage[]
+  assignedDeliveries Order[] @relation("DeliveryOrders")
+  statusHistory OrderStatusHistory[]
+
+  @@index([email])
+  @@index([tenantId])
+  @@index([pharmacyId])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+model Pharmacy {
+  id            String   @id @default(uuid())
+  tenantId      String
+  
+  // Basic Information
+  name          String
+  amharicName   String?
+  oromoName     String?
+  address       String?
+  phone         String?
+  
+  // Location
+  latitude      Float?
+  longitude     Float?
+  region        String?
+  city          String?
+  
+  // Business Details
+  licenseNumber String?
+  licenseExpiry DateTime?
+  pharmacyType  PharmacyType @default(PRIVATE)
+  deliveryFee   Float    @default(0)
+  deliveryRange Int      @default(10) // km
+  
+  // Status
+  verified      Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  emergencyService Boolean @default(false)
+  
+  // Verification
+  verifiedAt    DateTime?
+  verifiedBy    String?
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  users         User[]
+  inventory     Inventory[]
+  orders        Order[]
+  chats         Chat[]
+  payouts       Payout[]
+
+  @@index([tenantId])
+  @@index([latitude, longitude])
+  @@index([verified])
+  @@index([isActive])
+}
+
+model Inventory {
+  id           String   @id @default(uuid())
+  pharmacyId   String
+  tenantId     String
+  
+  // Product Information
+  sku          String
+  name         String
+  description  String?
+  category     String?
+  batchNumber  String?
+  
+  // Pricing & Quantity
+  quantity     Int
+  price        Float    @default(0)
+  cost         Float    @default(0)
+  
+  // Expiry & Availability
+  expiryAt     DateTime?
+  isAvailable  Boolean  @default(true)
+  requiresPrescription Boolean @default(false)
+  
+  // Media
+  images       String[] // JSON array of image URLs
+  
+  // Timestamps
+  addedAt      DateTime @default(now())
+  lastUpdated  DateTime @updatedAt
+  
+  // Relations
+  pharmacy     Pharmacy @relation(fields: [pharmacyId], references: [id])
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  auditLogs    Audit[]
+  orderItems   OrderItem[]
+
+  @@index([tenantId])
+  @@index([pharmacyId])
+  @@index([name])
+  @@index([sku])
+  @@index([isAvailable, expiryAt])
+  @@index([category])
+}
+
+model Order {
   id          String   @id @default(uuid())
+  tenantId    String
   pharmacyId  String
-  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  orderId     String?
-  order       Order?   @relation(fields: [orderId], references: [id])
-  status      ChatStatus @default(ACTIVE)
+  deliveryUserId String?
+  
+  // Order Details
+  status      OrderStatus @default(PENDING)
+  totalAmount Float
+  deliveryFee Float
+  taxAmount   Float    @default(0)
+  
+  // Delivery Information
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  phone       String?
+  notes       String?
+  
+  // Payment
+  paymentIntentId String?
+  paymentStatus PaymentStatus @default(PENDING)
+  
+  // Delivery Tracking
+  estimatedDelivery DateTime?
+  deliveredAt DateTime?
+  
+  // Timestamps
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
+  // Relations
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  deliveryUser User?   @relation("DeliveryOrders", fields: [deliveryUserId], references: [id])
+  items       OrderItem[]
+  statusHistory OrderStatusHistory[]
+  deliveryLocations DeliveryLocation[]
+  chats       Chat[]
+
+  @@index([tenantId])
+  @@index([pharmacyId])
+  @@index([userId])
+  @@index([deliveryUserId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([paymentStatus])
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  inventoryId String
+  quantity    Int
+  price       Float
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+
+  @@index([orderId])
+  @@index([inventoryId])
+}
+
+model Chat {
+  id          String   @id @default(uuid())
+  pharmacyId  String
+  userId      String
+  orderId     String?
+  
+  // Chat Details
+  status      ChatStatus @default(ACTIVE)
+  title       String?
+  lastMessageAt DateTime?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  order       Order?   @relation(fields: [orderId], references: [id])
   participants ChatParticipant[]
   messages     ChatMessage[]
+
+  @@index([pharmacyId])
+  @@index([userId])
+  @@index([orderId])
+  @@index([status])
+  @@index([lastMessageAt])
 }
 
 model ChatParticipant {
   id        String   @id @default(uuid())
   chatId    String
-  chat      Chat     @relation(fields: [chatId], references: [id])
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  role      ParticipantRole
+  role      ParticipantRole @default(CUSTOMER)
   joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+  
+  // Relations
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([chatId, userId])
+  @@index([chatId])
+  @@index([userId])
 }
 
 model ChatMessage {
   id          String      @id @default(uuid())
   chatId      String
-  chat        Chat        @relation(fields: [chatId], references: [id])
   userId      String
-  user        User        @relation(fields: [userId], references: [id])
   content     String
   messageType MessageType @default(TEXT)
+  
+  // Message Status
   read        Boolean     @default(false)
+  delivered   Boolean     @default(false)
+  
+  // Metadata
+  metadata    Json? // For storing additional data like file URLs, etc.
+  
+  // Timestamps
   createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Relations
+  chat        Chat        @relation(fields: [chatId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@index([chatId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([read])
 }
 
 model DeliveryLocation {
   id          String   @id @default(uuid())
   orderId     String
-  order       Order    @relation(fields: [orderId], references: [id])
   latitude    Float
   longitude   Float
   accuracy    Float?
   recordedAt  DateTime @default(now())
+  
+  // Relations
+  order       Order    @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([recordedAt])
 }
 
 model OrderStatusHistory {
   id          String   @id @default(uuid())
   orderId     String
-  order       Order    @relation(fields: [orderId], references: [id])
   status      OrderStatus
   changedBy   String?
   notes       String?
   createdAt   DateTime @default(now())
+  
+  // Relations
+  order       Order    @relation(fields: [orderId], references: [id])
+  changedByUser User?  @relation(fields: [changedBy], references: [id])
+
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model Audit {
+  id          String   @id @default(uuid())
+  tenantId    String
+  pharmacyId  String?
+  inventoryId String?
+  userId      String?
+  orderId     String?
+  
+  // Audit Details
+  action      String
+  details     String?
+  ipAddress   String?
+  userAgent   String?
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  pharmacy    Pharmacy? @relation(fields: [pharmacyId], references: [id])
+  inventory   Inventory? @relation(fields: [inventoryId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
+  order       Order?   @relation(fields: [orderId], references: [id])
+
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([action])
+}
+
+model Payout {
+  id              String   @id @default(uuid())
+  pharmacyId      String
+  tenantId        String
+  amount          Float
+  stripePayoutId  String?
+  status          PayoutStatus @default(PENDING)
+  failureReason   String?
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  pharmacy        Pharmacy @relation(fields: [pharmacyId], references: [id])
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([pharmacyId])
+  @@index([tenantId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model BulkUpload {
+  id          String   @id @default(uuid())
+  tenantId    String
+  pharmacyId  String
+  fileName    String
+  status      BulkUploadStatus @default(PROCESSING)
+  totalRows   Int
+  processedRows Int   @default(0)
+  errors      String? // JSON array of errors
+  createdBy   String
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+  
+  // Relations
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  createdByUser User   @relation(fields: [createdBy], references: [id])
+
+  @@index([tenantId])
+  @@index([pharmacyId])
+  @@index([createdAt])
+}
+
+model Prescription {
+  id          String   @id @default(uuid())
+  tenantId    String
+  pharmacyId  String
+  orderId     String?
+  userId      String
+  
+  // Prescription Details
+  patientName String
+  patientAge  Int?
+  doctorName  String
+  doctorLicense String?
+  prescriptionDate DateTime
+  imageUrl    String?
+  status      PrescriptionStatus @default(PENDING_REVIEW)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  order       Order?   @relation(fields: [orderId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  items       PrescriptionItem[]
+
+  @@index([tenantId])
+  @@index([pharmacyId])
+  @@index([status])
+}
+
+model PrescriptionItem {
+  id          String   @id @default(uuid())
+  prescriptionId String
+  medicineName String
+  dosage      String
+  frequency   String
+  duration    String
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId])
+}
+
+// ===== ENUMS =====
+
+enum Plan {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  PHARMACIST
+  WORKER
+  DELIVERY
+  CUSTOMER
+}
+
+enum PharmacyType {
+  PRIVATE
+  GOVERNMENT
+  NGO
+  HOSPITAL
+  CLINIC
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
 }
 
 enum ChatStatus {
@@ -66,10 +526,37 @@ enum ParticipantRole {
   CUSTOMER
   STAFF
   DELIVERY
+  SYSTEM
 }
 
 enum MessageType {
   TEXT
   SYSTEM
   ORDER_UPDATE
+  IMAGE
+  FILE
+  PRESCRIPTION
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum BulkUploadStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PrescriptionStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  FULFILLED
+  EXPIRED
 }
