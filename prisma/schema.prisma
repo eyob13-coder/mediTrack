@@ -1,0 +1,75 @@
+model Chat {
+  id          String   @id @default(uuid())
+  pharmacyId  String
+  pharmacy    Pharmacy @relation(fields: [pharmacyId], references: [id])
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  orderId     String?
+  order       Order?   @relation(fields: [orderId], references: [id])
+  status      ChatStatus @default(ACTIVE)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  participants ChatParticipant[]
+  messages     ChatMessage[]
+}
+
+model ChatParticipant {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  role      ParticipantRole
+  joinedAt  DateTime @default(now())
+}
+
+model ChatMessage {
+  id          String      @id @default(uuid())
+  chatId      String
+  chat        Chat        @relation(fields: [chatId], references: [id])
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  content     String
+  messageType MessageType @default(TEXT)
+  read        Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+}
+
+model DeliveryLocation {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  latitude    Float
+  longitude   Float
+  accuracy    Float?
+  recordedAt  DateTime @default(now())
+}
+
+model OrderStatusHistory {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id])
+  status      OrderStatus
+  changedBy   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+enum ChatStatus {
+  ACTIVE
+  RESOLVED
+  ARCHIVED
+}
+
+enum ParticipantRole {
+  CUSTOMER
+  STAFF
+  DELIVERY
+}
+
+enum MessageType {
+  TEXT
+  SYSTEM
+  ORDER_UPDATE
+}
