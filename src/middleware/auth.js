@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database.js';
+import {JWT_SECRET} from '../config/env.js'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'changeme'
+
 
 export async function authenticate(req, res, next) {
   const auth = req.headers.authorization

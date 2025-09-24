@@ -26,7 +26,7 @@ export function validate(schema) {
 export const authValidation = {
   register: z.object({
     tenantName: z.string().min(1),
-    email: z.string().email(),
+    email: z.email(),
     password: z.string().min(6),
     name: z.string().min(1),
     role: z.string().optional(),
@@ -34,12 +34,12 @@ export const authValidation = {
   }),
 
   login: z.object({
-    email: z.string().email(),
+    email: z.email(),
     password: z.string().min(6)
   }),
 
   invite: z.object({
-    email: z.string().email(),
+    email: z.email(),
     role: z.string().min(1)
   })
 }
@@ -49,9 +49,9 @@ export const authValidation = {
  */
 export const orderValidation = {
   create: z.object({
-    pharmacyId: z.string().uuid(),
+    pharmacyId: z.uuid(),
     items: z.array(z.object({
-      inventoryId: z.string().uuid(),
+      inventoryId: z.uuid(),
       quantity: z.number().int().min(1).max(1000)
     })).min(1).max(50),
     address: z.string().min(5).max(500),
@@ -72,8 +72,8 @@ export const orderValidation = {
       'DELIVERED',
       'CANCELLED'
     ]),
-    deliveryUserId: z.string().uuid().optional(),
-    estimatedDelivery: z.string().datetime().optional()
+    deliveryUserId: z.uuid().optional(),
+    estimatedDelivery: z.iso.datetime().optional()
   }),
 
   assignDelivery: z.object({
@@ -90,13 +90,13 @@ export const orderValidation = {
  */
 export const paymentValidation = {
   createPayment: z.object({
-    orderId: z.string().uuid(),
+    orderId: z.uuid(),
     paymentMethodId: z.string(),
     saveCard: z.boolean().optional()
   }),
 
   refund: z.object({
-    orderId: z.string().uuid(),
+    orderId: z.uuid(),
     amount: z.number().positive().optional(),
     reason: z.enum(['duplicate', 'fraudulent', 'requested_by_customer']).optional()
   })

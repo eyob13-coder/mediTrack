@@ -4,7 +4,7 @@ import {
   login, 
   logout, 
   refreshToken,
-//   verifyEmail 
+
 } from '../controllers/auth.controller.js'
 import { validate, authValidation } from '../utils/validation.js'
 import { authLimiter } from '../middleware/security.js'
@@ -17,7 +17,7 @@ authRoutes.post('/register', authLimiter, validate(authValidation.register), reg
 authRoutes.post('/login', authLimiter, validate(authValidation.login), login)
 authRoutes.post('/refresh-token', refreshToken)
 authRoutes.post('/logout', logout)
-// authRoutes.post('/verify-email', verifyEmail)
+
 
 // Protected routes
 

@@ -11,8 +11,8 @@ import prisma from './config/database.js'
 
 // Import routes
 import authRoutes from './routes/auth.route.js'
-// import tenantRoutes from './routes/tenants.js'
-// import pharmacyRoutes from './routes/pharmacies.js'
+import tenantRoutes from './routes/tenants.route.js'
+import pharmacyRoutes from './routes/pharmacies.route.js'
 // import inventoryRoutes from './routes/inventory.js'
 // import orderRoutes from './routes/orders.js'
 // import billingRoutes from './routes/billing.js'
@@ -21,8 +21,8 @@ import authRoutes from './routes/auth.route.js'
 // import languageRoutes from './routes/language.js'
 // import ethiopianRoutes from './routes/ethiopian.js'
 
-// import { securityHeaders, apiLimiter } from './middleware/security.js'
-// import { authenticate } from './middleware/auth.js'
+import { securityHeaders } from './middleware/security.js'
+
 
 prisma.$connect()
   .then(() => {
@@ -38,8 +38,8 @@ const server = createServer(app)
 // Initialize WebSocket with African language support
 // initializeSocket(server)
 
-// Middleware
-// app.use(securityHeaders)
+
+app.use(securityHeaders)
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
@@ -63,8 +63,8 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api/v1/auth', authRoutes)
-// app.use('/api/tenants', authenticate, tenantRoutes)
-// app.use('/api/pharmacies', authenticate, pharmacyRoutes)
+app.use('/api/v1/', tenantRoutes)
+app.use('/api/v1/pharmacies', pharmacyRoutes)
 // app.use('/api/inventory', authenticate, inventoryRoutes)
 // app.use('/api/orders', authenticate, orderRoutes)
 // app.use('/api/billing', authenticate, billingRoutes)
