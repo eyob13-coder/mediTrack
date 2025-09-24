@@ -24,6 +24,9 @@ model Tenant {
   orders      Order[]
   audits      Audit[]
   payouts     Payout[]
+  inventories Inventory[]  // Added missing relation
+  bulkUploads BulkUpload[] // Added missing relation
+  prescriptions Prescription[] // Added missing relation
 
   @@unique([stripeCustomerId])
   @@unique([stripeSubscriptionId])
@@ -68,6 +71,9 @@ model User {
   chatMessages ChatMessage[]
   assignedDeliveries Order[] @relation("DeliveryOrders")
   statusHistory OrderStatusHistory[]
+  chats        Chat[]        // Added missing relation
+  bulkUploads  BulkUpload[]  // Added missing relation
+  prescriptions Prescription[] // Added missing relation
 
   @@index([email])
   @@index([tenantId])
@@ -120,6 +126,9 @@ model Pharmacy {
   orders        Order[]
   chats         Chat[]
   payouts       Payout[]
+  audits        Audit[]      // Added missing relation
+  bulkUploads   BulkUpload[] // Added missing relation
+  prescriptions Prescription[] // Added missing relation
 
   @@index([tenantId])
   @@index([latitude, longitude])
@@ -211,6 +220,8 @@ model Order {
   statusHistory OrderStatusHistory[]
   deliveryLocations DeliveryLocation[]
   chats       Chat[]
+  audits      Audit[]        // Added missing relation
+  prescriptions Prescription[] // Added missing relation
 
   @@index([tenantId])
   @@index([pharmacyId])
