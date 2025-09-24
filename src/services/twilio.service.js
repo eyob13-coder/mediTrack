@@ -1,60 +1,48 @@
 import twilio from 'twilio'
-import {TWILIO_AUTH_TOKEN, TWILIO_ACCOUNT_SID, TWILIO_PHONE_NUMBER} from '../config/env.js'
+import { TWILIO_PHONE_NUMBER, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN } from '../config/env.js';
+
 const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-export const sendSMS = async (to, message, language = 'en') => {
+// ✅ Core SMS sender
+export const sendSMS = async (to, message) => {
   try {
-    // Handle different character encodings for African languages
-    const encodedMessage = encodeAfricanText(message, language)
-    
     const result = await client.messages.create({
-      body: encodedMessage,
+      body: message,
       from: TWILIO_PHONE_NUMBER,
-      to: to,
-      ...(language !== 'en' && { provideFeedback: true }) // Better delivery reports for non-English
+      to
     })
-    
+
     return { success: true, sid: result.sid }
   } catch (error) {
-    console.error('Twilio SMS error:', error)
+    console.error('❌ Twilio SMS error:', error)
     return { success: false, error: error.message }
   }
 }
 
-export const sendTranslatedSMS = async (phone, templateKey, amount, variables = {}, language = 'en') => {
+// ✅ Template-driven SMS (English only)
+export const sendTemplateSMS = async (phone, templateKey, amount, variables = {}) => {
   const templates = {
-    order_confirmation: {
-      en: `Order confirmed! ID: {{orderId}}. Total: ${{amount}}. We'll notify when ready.`,
-      am: `ትዕዛዝ ተረጋግጧል! መለያ: {{orderId}}. ጠቅላላ: {{amount}} ብር. ሲዘጋጅ እንጠቁማለን.`,
-      om: `Ajaja mirkaneesse! ID: {{orderId}}. Waliigala: {{amount}} Birrii. Yeroo qophaa'e nutti himna.`,
-      sw: `Agizo limethibitishwa! Kitambulisho: {{orderId}}. Jumla: {{amount}}. Tutawataarifa wakati likitayarishwa.`
-    },
-    delivery_update: {
-      en: `Your order #{{orderId}} is out for delivery. ETA: {{eta}}`,
-      am: `ትዕዛዝዎ #{{orderId}} ለማስረከብ ወጥቷል. የሚጠበቀው ሰዓት: {{eta}}`,
-      om: `Ajaja kee #{{orderId}} geessisuu fiige. Yeroo filannoo: {{eta}}`,
-      sw: `Agizo lako #{{orderId}} limefika kwa uwasilishaji. Muda wa kufika: {{eta}}`
-    }
+    order_confirmation: `Order confirmed! ID: {{orderId}}. Total: ${{amount}}. We'll notify you when ready.`,
+    delivery_update: `Your order #{{orderId}} is out for delivery. ETA: {{eta}}.`,
+    inventory_low: `Inventory alert! Item "{{itemName}}" is running low. Remaining: {{quantity}} units.`,
+    prescription_ready: `Your prescription #{{prescriptionId}} is ready for pickup.`,
+    delivery_completed: `Your order #{{orderId}} has been delivered successfully.`
   }
-  
-  const template = templates[templateKey]?.[language] || templates[templateKey]?.['en']
+
+  const template = templates[templateKey]
   if (!template) {
-    throw new Error(`SMS template ${templateKey} not found for language ${language}`)
+    throw new Error(`❌ Template "${templateKey}" not found.`)
   }
-  
+
   let message = template
-  Object.keys(variables).forEach(key => {
-    message = message.replace(`{{${key}}}`, variables[key])
-  })
-  
-  return sendSMS(phone, message, language)
+  for (const [key, value] of Object.entries(variables)) {
+    message = message.replace(new RegExp(`{{${key}}}`, 'g'), value)
+  }
+
+  return sendSMS(phone, message)
 }
 
-const encodeAfricanText = (text, language) => {
-  // Handle special encoding for African languages if needed
-  if (['am', 'ti'].includes(language)) {
-    // Ethiopian languages might need special handling
-    return text
-  }
-  return text
+// ✅ Keep this export so other files work without error
+export const sendTranslatedSMS = async (phone, templateKey, variables = {}) => {
+  return sendTemplateSMS(phone, templateKey, variables)
 }

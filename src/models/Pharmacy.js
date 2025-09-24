@@ -1,4 +1,4 @@
-import prisma from '../prisma.js'
+import prisma from '../config/database.js'
 import { geolocationService } from '../services/geolocation.service.js'
 import { getUserLanguage } from '../i18n.js'
 

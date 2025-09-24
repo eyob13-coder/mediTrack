@@ -5,6 +5,7 @@ import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import { createServer } from 'http'
 import prisma from './config/database.js'
+import path from 'path'
 
 // import { initializeSocket } from './services/socketService.js'
 // import { languageMiddleware } from './middleware/language.js'
@@ -12,7 +13,9 @@ import prisma from './config/database.js'
 // Import routes
 import authRoutes from './routes/auth.route.js'
 import tenantRoutes from './routes/tenants.route.js'
-import pharmacyRoutes from './routes/pharmacies.route.js'
+import pharmacyRoutes from './routes/pharmacies.route.js';
+import presRoute from './routes/prescriptions.route.js';
+import notifRoute from './routes/notifications.route.js'
 // import inventoryRoutes from './routes/inventory.js'
 // import orderRoutes from './routes/orders.js'
 // import billingRoutes from './routes/billing.js'
@@ -61,10 +64,12 @@ app.get('/', (req, res) => {
     // supportedLanguages: Object.keys(SUPPORTED_LANGUAGES)
   })
 })
-
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 app.use('/api/v1/auth', authRoutes)
 app.use('/api/v1/', tenantRoutes)
 app.use('/api/v1/pharmacies', pharmacyRoutes)
+app.use('/api/v1/prescriptions', presRoute)
+app.use('/api/v1/notify', notifRoute)
 // app.use('/api/inventory', authenticate, inventoryRoutes)
 // app.use('/api/orders', authenticate, orderRoutes)
 // app.use('/api/billing', authenticate, billingRoutes)

@@ -211,7 +211,7 @@ export const deletePharmacy = async (req, res, next) => {
     });
 
     res.json({
-      message: ('pharmacy.deleted_success'),
+      message: ('Pharmacy deleted successfully'),
       pharmacy: { id: pharmacy.id, name: pharmacy.name, status: 'deactivated' }
     });
   } catch (error) {

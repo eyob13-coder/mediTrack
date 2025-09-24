@@ -277,6 +277,57 @@ model Chat {
   @@index([lastMessageAt])
 }
 
+model Notification {
+  id           String       @id @default(uuid())
+  userId       String
+  pharmacyId   String?
+  tenantId     String
+  
+  // Notification content
+  type         String       // e.g., ORDER_CREATED, LOW_STOCK, etc.
+  title        String
+  message      String
+  data         Json?        // Additional data as JSON
+  
+  // Delivery info
+  channels     String[]     // socket, sms, email
+  priority     String       @default("normal") // low, normal, high, urgent
+  language     String       @default("en")
+  
+  // Status
+  status       NotificationStatus @default(SENT)
+  error        String?
+  
+  // Read status
+  read         Boolean      @default(false)
+  readAt       DateTime?
+  
+  // Timestamps
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  
+  // Relations
+  user         User         @relation(fields: [userId], references: [id])
+  pharmacy     Pharmacy?    @relation(fields: [pharmacyId], references: [id])
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+
+  @@index([userId])
+  @@index([pharmacyId])
+  @@index([tenantId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([read])
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
 model ChatParticipant {
   id        String   @id @default(uuid())
   chatId    String
