@@ -7,18 +7,34 @@ import {JWT_SECRET} from '../config/env.js'
 export async function authenticate(req, res, next) {
   const auth = req.headers.authorization
   if (!auth) return res.status(401).json({ error: 'Missing authorization' })
+
   const token = auth.split(' ')[1]
   if (!token) return res.status(401).json({ error: 'Malformed token' })
+
   try {
     const payload = jwt.verify(token, JWT_SECRET)
-    const user = await prisma.user.findUnique({ where: { id: payload.sub } })
+
+    const user = await prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        tenantId: true,
+        pharmacyId: true // ✅ include pharmacyId
+      }
+    })
+
     if (!user) return res.status(401).json({ error: 'Invalid user' })
+
     req.user = {
       id: user.id,
       email: user.email,
       role: user.role,
-      tenantId: user.tenantId
+      tenantId: user.tenantId,
+      pharmacyId: user.pharmacyId // ✅ attach pharmacyId
     }
+
     next()
   } catch (err) {
     return res.status(401).json({ error: 'Invalid token', details: err.message })

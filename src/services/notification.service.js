@@ -89,6 +89,35 @@ export const notificationService = {
     }
   },
 
+  // ===== Notify Pharmacists =====
+  async notifyPharmacists(tenantId, pharmacyId, type, title, message, data = {}) {
+    const pharmacists = await prisma.user.findMany({
+      where: {
+        tenantId,
+        pharmacyId,
+        role: { in: ['ADMIN', 'PHARMACIST'] },
+        isActive: true
+      }
+    });
+
+    const results = await Promise.all(
+      pharmacists.map(user =>
+        this.sendNotification({
+          userId: user.id,
+          pharmacyId,
+          tenantId,
+          type,
+          title,
+          message,
+          data,
+          channels: ['socket', user.email ? 'email' : null].filter(Boolean)
+        })
+      )
+    );
+
+    return { success: true, results };
+  },
+
   // ===== ORDER =====
   async sendOrderNotification(orderId, notificationType, extra = {}) {
     const order = await prisma.order.findUnique({
@@ -228,9 +257,10 @@ export const notificationService = {
     return { success: true, notifications, pagination: { page, limit, total, pages: Math.ceil(total / limit), unread } }
   },
 
-  async markAsRead(notificationId, userId) {
+  async markAsRead(notificationId) {
+
     const notification = await prisma.notification.update({
-      where: { id: notificationId, userId },
+      where: { id: notificationId },
       data: { read: true, readAt: new Date() }
     })
     return { success: true, notification }
