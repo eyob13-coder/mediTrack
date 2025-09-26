@@ -27,6 +27,7 @@ model Tenant {
   inventories Inventory[]  // Added missing relation
   bulkUploads BulkUpload[] // Added missing relation
   prescriptions Prescription[] // Added missing relation
+  notifications Notification[] // Added inverse relation for Notification
 
   @@unique([stripeCustomerId])
   @@unique([stripeSubscriptionId])
@@ -43,6 +44,7 @@ model User {
   name         String?
   phone        String?
   language     String   @default("en")
+  notificationPreferences Json @default("{}")
   
   // Authentication & Verification
   emailVerified Boolean @default(false)
@@ -74,6 +76,7 @@ model User {
   chats        Chat[]        // Added missing relation
   bulkUploads  BulkUpload[]  // Added missing relation
   prescriptions Prescription[] // Added missing relation
+  notifications Notification[] // Added inverse relation for Notification
 
   @@index([email])
   @@index([tenantId])
@@ -129,6 +132,7 @@ model Pharmacy {
   audits        Audit[]      // Added missing relation
   bulkUploads   BulkUpload[] // Added missing relation
   prescriptions Prescription[] // Added missing relation
+  notifications Notification[] // Added inverse relation for Notification
 
   @@index([tenantId])
   @@index([latitude, longitude])

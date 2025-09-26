@@ -81,8 +81,30 @@ export const broadcastToTenant = (tenantId, type, data = {}) => {
   })
 }
 
+// Notify specific order update
+export const notifyOrderUpdate = (orderId, data) => {
+  if (!io) return;
+  io.to(`order:${orderId}`).emit('order-update', data);
+}
+
+// Notify delivery location update
+export const notifyDeliveryLocation = (orderId, data) => {
+  if (!io) return;
+  io.to(`order:${orderId}`).emit('delivery-location-update', data);
+}
+
 const generateId = () => {
   return Math.random().toString(36).substr(2, 9)
 }
 
 export const getIO = () => io
+
+export const notifyInventoryUpdate = (pharmacyId, data) => {
+  if (!io) return;
+  io.to(`pharmacy:${pharmacyId}`).emit('inventory-update', data);
+}
+
+export const notifyUserEditing = (pharmacyId, itemId, user, isEditing) => {
+  if (!io) return;
+  io.to(`pharmacy:${pharmacyId}`).emit('user-editing-inventory', { itemId, user, isEditing });
+}

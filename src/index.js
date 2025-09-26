@@ -7,7 +7,7 @@ import { createServer } from 'http'
 import prisma from './config/database.js'
 import path from 'path'
 
-// import { initializeSocket } from './services/socketService.js'
+import { initializeSocket } from './services/socket.service.js'
 // import { languageMiddleware } from './middleware/language.js'
 
 // Import routes
@@ -16,8 +16,8 @@ import tenantRoutes from './routes/tenants.route.js'
 import pharmacyRoutes from './routes/pharmacies.route.js';
 import presRoute from './routes/prescriptions.route.js';
 import notifRoute from './routes/notifications.route.js'
-// import inventoryRoutes from './routes/inventory.js'
-// import orderRoutes from './routes/orders.js'
+import inventoryRoute from './routes/inventory.route.js'
+import orderRoutes from './routes/orders.route.js'
 // import billingRoutes from './routes/billing.js'
 // import analyticsRoutes from './routes/analytics.js'
 // import chatRoutes from './routes/chat.js'
@@ -39,7 +39,7 @@ const app = express()
 const server = createServer(app)
 
 // Initialize WebSocket with African language support
-// initializeSocket(server)
+initializeSocket(server)
 
 
 app.use(securityHeaders)
@@ -69,9 +69,9 @@ app.use('/api/v1/auth', authRoutes)
 app.use('/api/v1/', tenantRoutes)
 app.use('/api/v1/pharmacies', pharmacyRoutes)
 app.use('/api/v1/prescriptions', presRoute)
-app.use('/api/v1/notify', notifRoute)
-// app.use('/api/inventory', authenticate, inventoryRoutes)
-// app.use('/api/orders', authenticate, orderRoutes)
+app.use('/api/v1/notifications', notifRoute)
+app.use('/api/v1/inventory', inventoryRoute)
+app.use('/api/v1/orders', orderRoutes)
 // app.use('/api/billing', authenticate, billingRoutes)
 // app.use('/api/analytics', authenticate, analyticsRoutes)
 // app.use('/api/chat', authenticate, chatRoutes)
